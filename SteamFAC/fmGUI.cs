@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -39,17 +39,17 @@ namespace SteamFAC
                 var persona_name_matches = Regex.Matches(text, "\"PersonaName\"[\\t ]+\"([^\"^\\t^\\n]+)\"");
                 for (int i = 0; i < steam_id_matches.Count; i++)
                 {
-                    var user = new SteamUser()
+                    comboBox1.Items.Add(new SteamUser()
                     {
                         SteamID = steam_id_matches[i].Groups[1].Value,
                         AccountName = account_name_matches[i].Groups[1].Value,
                         PersonaName = persona_name_matches[i].Groups[1].Value
-                    };
-                    comboBox1.Items.Add(user);
+                    });
                 }
             }
             catch (Exception ex)
             {
+                Console.WriteLine(ex.Message);
                 MessageBox.Show("Parsing loginusers.vdf failed", "", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
                 Environment.Exit(1);
             }
@@ -65,18 +65,10 @@ namespace SteamFAC
         private async void button1_Click(object sender, EventArgs e)
         {
             var steam_exe = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Steam\steam.exe";
-            Process[] process_list;
-            while ((process_list = Process.GetProcessesByName("Steam")).Length > 0)
+            while (Process.GetProcessesByName("Steam").Length > 0)
             {
-                foreach (Process p in process_list)
-                {
-                    while(!p.HasExited)
-                    {
-                        p.Kill();
-                        await Task.Delay(500);
-                    }
-                }
-                await Task.Delay(100);
+                Process.Start(steam_exe, "-shutdown");
+                await Task.Delay(500);
             }
             var steam_reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Valve\Steam", true);
             var auto_login_user = steam_reg.GetValue("AutoLoginUser", "") as string;
