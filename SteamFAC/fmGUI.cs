@@ -14,23 +14,38 @@ using System.Windows.Forms;
 
 namespace SteamFAC
 {
+    public class SteamUser
+    {
+        public string SteamID { get; set; }
+        public string AccountName { get; set; }
+        public string PersonaName { get; set; }
+        public override string ToString() => $"{AccountName} - {SteamID}";
+    }
+
     public partial class fmGUI : Form
     {
         private SteamUser TargetUser { get; set; }
+        private RegistryKey RegistrySteam { get; } = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Valve\Steam", true);
 
         public fmGUI()
         {
             InitializeComponent();
         }
 
+        private void ShowAndQuit(string message, int exitcode = 0)
+        {
+            MessageBox.Show(message, "", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+            Environment.Exit(exitcode);
+        }
+
         private void fmGUI_Load(object sender, EventArgs e)
         {
-            var steam_login_file = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Steam\config\loginusers.vdf";
+            var steam_path = RegistrySteam.GetValue("SteamPath", "") as string;
+            if (!Directory.Exists(steam_path))
+                ShowAndQuit("Steam not installed", 1);
+            var steam_login_file = steam_path + @"\config\loginusers.vdf";
             if (!File.Exists(steam_login_file))
-            {
-                MessageBox.Show("No user found", "", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-                Environment.Exit(1);
-            }
+                ShowAndQuit("No Steam user found", 1);
             var text = File.ReadAllText(steam_login_file);
             try
             {
@@ -50,8 +65,7 @@ namespace SteamFAC
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                MessageBox.Show("Parsing loginusers.vdf failed", "", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-                Environment.Exit(1);
+                ShowAndQuit("Parsing loginusers.vdf failed", 1);
             }
             if (comboBox1.Items.Count > 0)
                 comboBox1.SelectedIndex = 0;
@@ -64,33 +78,18 @@ namespace SteamFAC
 
         private async void button1_Click(object sender, EventArgs e)
         {
-            var steam_exe = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86) + @"\Steam\steam.exe";
+            var steam_exe = RegistrySteam.GetValue("SteamExe", "") as string;
             while (Process.GetProcessesByName("Steam").Length > 0)
             {
                 Process.Start(steam_exe, "-shutdown");
-                await Task.Delay(500);
+                await Task.Delay(1000);
             }
-            var steam_reg = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Valve\Steam", true);
-            var auto_login_user = steam_reg.GetValue("AutoLoginUser", "") as string;
+            var auto_login_user = RegistrySteam.GetValue("AutoLoginUser", "") as string;
             if (string.IsNullOrEmpty(auto_login_user))
-            {
-                MessageBox.Show("Registry 'AutoLoginUser' not found or set", "", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
-                Environment.Exit(1);
-            }
-            steam_reg.SetValue("AutoLoginUser", TargetUser.AccountName);
+                ShowAndQuit("Registry 'AutoLoginUser' not found or set", 1);
+            RegistrySteam.SetValue("AutoLoginUser", TargetUser.AccountName);
             Process.Start(steam_exe);
             Environment.Exit(0);
-        }
-    }
-
-    public class SteamUser
-    {
-        public string SteamID { get; set; }
-        public string AccountName { get; set; }
-        public string PersonaName { get; set; }
-        public override string ToString()
-        {
-            return $"{AccountName} - {SteamID}";
         }
     }
 }
