@@ -50,7 +50,7 @@ namespace SteamFAC
             try
             {
                 var steam_id_matches = Regex.Matches(text, "\"(\\d{12,20})\"");
-                var account_name_matches = Regex.Matches(text, "\"AccountName\"[\\t ]+\"(\\w+)\"");
+                var account_name_matches = Regex.Matches(text, "\"AccountName\"[\\t ]+\"([^\"^\\t^\\n]+)\"");
                 var persona_name_matches = Regex.Matches(text, "\"PersonaName\"[\\t ]+\"([^\"^\\t^\\n]+)\"");
                 for (int i = 0; i < steam_id_matches.Count; i++)
                 {
